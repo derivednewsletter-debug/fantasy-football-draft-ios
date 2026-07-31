@@ -1,30 +1,21 @@
-"""Simple email/password authentication for the Fantasy Draft API.
+"""Email/password authentication for the Fantasy Draft API.
 
-Users and sessions are persisted as JSON under the same data dir as leagues
-(FANTASY_DATA_DIR).  Passwords are hashed with PBKDF2-HMAC-SHA256 (stdlib
-`hashlib` — no extra dependencies), and every login issues a bearer token
-that expires after TOKEN_TTL_DAYS.
-
-Note for serverless deployments: the data dir is /tmp on Vercel, so users
-are ephemeral per cold start — same tradeoff as league storage.
+Users and sessions are persisted through :mod:`backend.db`, a durable
+key-value store: SQLite locally, Postgres via ``DATABASE_URL`` on Vercel
+(so accounts survive serverless cold starts).  Passwords are hashed with
+PBKDF2-HMAC-SHA256 (stdlib `hashlib` — no extra dependencies), and every
+login issues a bearer token that expires after TOKEN_TTL_DAYS.
 """
 
 from __future__ import annotations
 
 import hashlib
 import hmac
-import json
-import os
 import secrets
 import threading
 import time
-from pathlib import Path
 
-from .engine.store import DATA_DIR
-
-AUTH_DIR = DATA_DIR / "auth"
-USERS_FILE = AUTH_DIR / "users.json"
-SESSIONS_FILE = AUTH_DIR / "sessions.json"
+from . import db
 
 _PBKDF2_ITERATIONS = 200_000
 TOKEN_TTL_DAYS = 30
@@ -35,28 +26,6 @@ _lock = threading.Lock()
 
 class AuthError(Exception):
     """Raised for invalid credentials or a taken email."""
-
-
-# ---------------------------------------------------------------------------
-# JSON persistence
-# ---------------------------------------------------------------------------
-
-def _load(path: Path) -> dict:
-    if not path.exists():
-        return {}
-    try:
-        return json.loads(path.read_text())
-    except (json.JSONDecodeError, OSError):
-        return {}
-
-
-def _save(path: Path, data: dict) -> None:
-    """Atomically persist JSON (write to a temp file, then rename) so a
-    concurrent reader never catches a partially-written file."""
-    AUTH_DIR.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(json.dumps(data, indent=2))
-    os.replace(tmp, path)
 
 
 # ---------------------------------------------------------------------------
@@ -96,23 +65,21 @@ def create_user(email: str, password: str) -> dict:
     if len(password) < 6:
         raise AuthError("Password must be at least 6 characters")
     with _lock:
-        users = _load(USERS_FILE)
-        if email in users:
+        if db.get("users", email) is not None:
             raise AuthError("An account with that email already exists")
         salt = _new_salt()
-        users[email] = {
+        record = {
             "email": email,
             "salt": salt,
             "password_hash": _hash_password(password, salt),
             "created_at": int(time.time()),
         }
-        _save(USERS_FILE, users)
-        return users[email]
+        db.set("users", email, record)
+        return record
 
 
 def get_user(email: str) -> dict | None:
-    users = _load(USERS_FILE)
-    return users.get(_normalize_email(email))
+    return db.get("users", _normalize_email(email))
 
 
 _DUMMY_SALT = "0" * 32
@@ -148,11 +115,11 @@ def issue_token(email: str) -> str:
     """Issue a bearer token for a user, persisted across restarts."""
     email = _normalize_email(email)
     with _lock:
-        sessions = _load(SESSIONS_FILE)
+        sessions = db.all_values("sessions")
         _prune_expired(sessions)
         token = secrets.token_urlsafe(32)
         sessions[token] = {"email": email, "expires_at": int(time.time()) + TOKEN_TTL_SECONDS}
-        _save(SESSIONS_FILE, sessions)
+        db.set("sessions", token, sessions[token])
         return token
 
 
@@ -160,25 +127,20 @@ def resolve_token(token: str) -> str | None:
     """Return the email for a valid, unexpired token, else None."""
     if not token:
         return None
-    sessions = _load(SESSIONS_FILE)
-    session = sessions.get(token)
+    session = db.get("sessions", token)
     if session is None:
         return None
     if session.get("expires_at", 0) < int(time.time()):
         with _lock:
-            sessions = _load(SESSIONS_FILE)
-            sessions.pop(token, None)
-            _save(SESSIONS_FILE, sessions)
+            db.delete("sessions", token)
         return None
     return session.get("email")
 
 
 def revoke_token(token: str) -> None:
     with _lock:
-        sessions = _load(SESSIONS_FILE)
-        sessions.pop(token, None)
-        _save(SESSIONS_FILE, sessions)
+        db.delete("sessions", token)
 
 
 def active_session_count() -> int:
-    return len(_load(SESSIONS_FILE))
+    return len(db.all_values("sessions"))

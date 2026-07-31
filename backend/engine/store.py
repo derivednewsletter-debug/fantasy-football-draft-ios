@@ -1,28 +1,35 @@
-"""JSON-file persistence for leagues (survives server restarts).
+"""Durable persistence for leagues.
 
-Each user's leagues are stored under ``DATA_DIR/users/<user_id>/`` so draft
-data is fully separated per account.
+Each user's leagues are stored in the :mod:`backend.db` key-value store
+under the ``leagues:<user_id>`` collection — SQLite locally, Postgres via
+``DATABASE_URL`` on Vercel — so draft data is separated per account and
+survives serverless cold starts.
 """
 
 from __future__ import annotations
 
 import copy
-import json
 import os
 import re
 import threading
 from pathlib import Path
 from typing import Callable, TypeVar
 
+from .. import db
 from .models import League, Player, ROSTER_PRESETS
 
 DEFAULT_CSV = Path(__file__).resolve().parent.parent / "default_projections.csv"
-DATA_DIR = Path(os.environ.get("FANTASY_DATA_DIR", Path(__file__).resolve().parent.parent / "data"))
+DATA_DIR = db.DATA_DIR
 
 _lock = threading.Lock()
 _template_pool: list[Player] | None = None
 
 T = TypeVar("T")
+
+
+def _league_collection(user_id: str) -> str:
+    safe = re.sub(r"[^a-z0-9@._-]", "_", (user_id or "anon").lower())[:64] or "anon"
+    return f"leagues:{safe}"
 
 
 # ---------------------------------------------------------------------------
@@ -73,24 +80,10 @@ def fresh_pool() -> list[Player]:
 # League persistence (per user)
 # ---------------------------------------------------------------------------
 
-def _user_dir(user_id: str) -> Path:
-    safe = re.sub(r"[^a-z0-9@._-]", "_", (user_id or "anon").lower())[:64]
-    return DATA_DIR / "users" / (safe or "anon")
-
-
-def _league_path(name: str, user_id: str) -> Path:
-    safe = "".join(c if c.isalnum() or c in " _-." else "_" for c in name).strip()
-    return _user_dir(user_id) / f"{safe or 'league'}.json"
-
-
 def load_league(name: str, user_id: str) -> League | None:
-    """Load a user's league from disk, re-attaching a fresh player pool."""
-    path = _league_path(name, user_id)
-    if not path.exists():
-        return None
-    try:
-        data = json.loads(path.read_text())
-    except (json.JSONDecodeError, OSError):
+    """Load a user's league, re-attaching a fresh player pool."""
+    data = db.get(_league_collection(user_id), name)
+    if data is None:
         return None
     league = League.from_dict(data)
 
@@ -111,17 +104,14 @@ def load_league(name: str, user_id: str) -> League | None:
 
 def list_leagues(user_id: str) -> list[dict]:
     """Return lightweight metadata for the user's saved leagues."""
-    user_dir = _user_dir(user_id)
-    user_dir.mkdir(parents=True, exist_ok=True)
+    collection = _league_collection(user_id)
     metas = []
-    for path in sorted(user_dir.glob("*.json")):
-        try:
-            data = json.loads(path.read_text())
-        except (json.JSONDecodeError, OSError):
+    for name, data in db.all_values(collection).items():
+        if not isinstance(data, dict):
             continue
         metas.append(
             {
-                "name": data.get("name", path.stem),
+                "name": data.get("name", name),
                 "num_teams": data.get("num_teams", 0),
                 "user_team_number": data.get("user_team_number", 1),
                 "scoring_format": data.get("scoring_format", "PPR"),
@@ -133,15 +123,12 @@ def list_leagues(user_id: str) -> list[dict]:
                 "team_on_clock": _team_on_clock_from_meta(data),
             }
         )
-    return metas
+    return sorted(metas, key=lambda m: m["name"])
 
 
 def total_leagues() -> int:
-    """Total league files across all users (for the public health endpoint)."""
-    users_root = DATA_DIR / "users"
-    if not users_root.exists():
-        return 0
-    return sum(1 for p in users_root.glob("*/*.json"))
+    """Total league documents across all users (public health endpoint)."""
+    return db.count_collections_with_prefix("leagues:")
 
 
 def _team_on_clock_from_meta(data: dict) -> int:
@@ -152,9 +139,7 @@ def _team_on_clock_from_meta(data: dict) -> int:
 
 
 def save_league(league: League, user_id: str) -> None:
-    path = _league_path(league.name, user_id)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(league.to_dict(), indent=2))
+    db.set(_league_collection(user_id), league.name, league.to_dict())
 
 
 def update_league(name: str, user_id: str, mutator: Callable[[League], T]) -> tuple[League, T]:
@@ -174,11 +159,7 @@ def update_league(name: str, user_id: str, mutator: Callable[[League], T]) -> tu
 
 def delete_league(name: str, user_id: str) -> bool:
     with _lock:
-        path = _league_path(name, user_id)
-        if path.exists():
-            path.unlink()
-            return True
-        return False
+        return db.delete(_league_collection(user_id), name)
 
 
 # ---------------------------------------------------------------------------

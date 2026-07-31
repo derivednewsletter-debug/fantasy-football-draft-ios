@@ -5,8 +5,12 @@ we wrap the application with Mangum, which adapts it to the Lambda-style
 `handler(event, context)` signature that Vercel Python functions expect.
 
 Deployment notes:
-  * League data lives in /tmp/leagues on Vercel (the only writable location).
-    It is ephemeral per cold start — the same tradeoff as the web app.
+  * Set DATABASE_URL to a managed Postgres (Neon / Supabase) in the Vercel
+    project's Environment Variables.  When set, accounts, sessions, and
+    leagues are stored durably in Postgres and survive cold starts.
+  * Without DATABASE_URL the store falls back to SQLite in /tmp/leagues,
+    which is ephemeral per cold start — the old tradeoff.  Set the env var
+    for durable data.
   * Vercel serverless does NOT support WebSockets, so /leagues/{id}/ws will
     not upgrade in production.  The iOS app detects this and falls back to
     periodic REST polling so picks still show up in real time.

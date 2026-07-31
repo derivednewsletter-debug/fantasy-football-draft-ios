@@ -243,26 +243,33 @@ What happens:
 - The root **`requirements.txt`** (backend deps + `mangum`) is what Vercel
   installs.
 
-### ⚠️ Storage is ephemeral on Vercel
+### Storage: durable on Vercel (set `DATABASE_URL`)
 
-Serverless functions are recycled constantly, and `/tmp` is wiped on every
-cold start. **Leagues created on the deployed backend can disappear.** The
-backend always starts empty after a recycle, so:
+The backend ships a **durable key-value store** (`backend/db.py`):
 
-- Use the deployed backend for demoing / one-shot drafts.
-- For durable data, run the backend locally (`uvicorn backend.main:app`) or
-  on a long-running host — the storage layer is a drop-in JSON-file store.
+- **`DATABASE_URL` set** → all accounts, sessions, and leagues live in
+  managed **Postgres** (Neon / Supabase). Data survives serverless cold
+  starts, so sign-ins and leagues persist.
+- **`DATABASE_URL` unset** → a local **SQLite** file
+  (`FANTASY_DATA_DIR/draft.db`), durable on any filesystem-backed host and
+  dependency-free for local dev.
+
+If Postgres is unreachable the store logs once and degrades to SQLite
+instead of 500-ing, then retries Postgres every 30s. A one-time migration
+imports any pre-existing JSON data (`backend/data/auth/*`, `backend/data/users/*`)
+the first time the new store runs.
+
+> ⚠️ Without `DATABASE_URL` on Vercel, the SQLite file lands in `/tmp` and
+> is still wiped on cold starts — **always set `DATABASE_URL` on Vercel**
+> (Vercel → your project → Storage → Create Neon Postgres, which sets the
+> env var automatically).
 
 ### Environment variables (Vercel project settings)
 
 | Variable | Purpose |
 |----------|---------|
+| `DATABASE_URL` | Managed Postgres URL — makes accounts/leagues durable across cold starts (required for production) |
 | `NVIDIA_API_KEY` | Enables NVIDIA NIM AI recommendations (endpoint falls back to pure VBD without it) |
-
-> ⚠️ **Accounts are ephemeral on Vercel too.** The same cold-start recycling
-> that wipes `/tmp/leagues` also wipes `/tmp` users/sessions. Sign in locally
-> (or run the backend on a long-lived host) for durable data — the storage
-> layer is a drop-in JSON-file store.
 
 ### iOS pointing at the deployed URL
 
