@@ -21,12 +21,17 @@ final class FantasyDraftAssistantUITests: XCTestCase {
             app.navigationBars["Draft Assistant"].waitForExistence(timeout: 5),
             "The league dashboard should appear on launch"
         )
-        // Section headers can be exposed as headers rather than staticTexts on
-        // some OS versions, so wait and accept either kind.
-        let leaguesHeader = app.staticTexts["Your Leagues"].firstMatch
+        // The header uses .textCase(.uppercase), so it is exposed as
+        // "YOUR LEAGUES".  Section headers can also surface as otherElements
+        // rather than staticTexts on some OS versions — accept any of the
+        // four combinations (case × element kind).
+        let uppercased = app.staticTexts["YOUR LEAGUES"].firstMatch
+        let titleCased = app.staticTexts["Your Leagues"].firstMatch
         XCTAssertTrue(
-            leaguesHeader.waitForExistence(timeout: 5) ||
-            app.otherElements["Your Leagues"].firstMatch.waitForExistence(timeout: 2)
+            uppercased.waitForExistence(timeout: 5) ||
+            app.otherElements["YOUR LEAGUES"].firstMatch.waitForExistence(timeout: 2) ||
+            titleCased.waitForExistence(timeout: 1),
+            "The league dashboard should show the 'Your Leagues' section header"
         )
     }
 

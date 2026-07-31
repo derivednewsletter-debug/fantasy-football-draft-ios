@@ -13,6 +13,7 @@ struct LeagueListView: View {
     private let scoringOptions = ["PPR", "0.5_PPR", "Standard", "2QB/Superflex"]
 
     var body: some View {
+        @Bindable var vm = vm
         NavigationStack(path: $path) {
             List {
                 Section {

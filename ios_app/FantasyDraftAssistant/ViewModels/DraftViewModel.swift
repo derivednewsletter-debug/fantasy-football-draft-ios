@@ -190,4 +190,10 @@ final class DraftViewModel {
         notice = error.localizedDescription
         noticeIsError = true
     }
+
+    /// Overload for the API's string `error` field (e.g. `result.error`).
+    private func presentError(_ message: String) {
+        notice = message
+        noticeIsError = true
+    }
 }
