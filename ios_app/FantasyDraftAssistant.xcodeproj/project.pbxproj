@@ -22,6 +22,7 @@
 		0A100000000000000000000D /* ModelDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2000000000000000000010 /* ModelDecodingTests.swift */; };
 		0A100000000000000000000E /* FantasyDraftAssistantUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2000000000000000000011 /* FantasyDraftAssistantUITests.swift */; };
 		0A100000000000000000000F /* WebSocketManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2000000000000000000012 /* WebSocketManager.swift */; };
+		0A1000000000000000000010 /* LeagueHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2000000000000000000013 /* LeagueHubView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,6 +58,7 @@
 		0A2000000000000000000010 /* ModelDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelDecodingTests.swift; sourceTree = "<group>"; };
 		0A2000000000000000000011 /* FantasyDraftAssistantUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FantasyDraftAssistantUITests.swift; sourceTree = "<group>"; };
 		0A2000000000000000000012 /* WebSocketManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketManager.swift; sourceTree = "<group>"; };
+		0A2000000000000000000013 /* LeagueHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeagueHubView.swift; sourceTree = "<group>"; };
 		0A20000000000000000000FF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		0A20000000000000000000FE /* FantasyDraftAssistant.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FantasyDraftAssistant.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0A20000000000000000000FD /* FantasyDraftAssistantTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FantasyDraftAssistantTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -161,6 +163,7 @@
 			isa = PBXGroup;
 			children = (
 				0A2000000000000000000002 /* LeagueListView.swift */,
+				0A2000000000000000000013 /* LeagueHubView.swift */,
 				0A2000000000000000000003 /* DraftRoomView.swift */,
 				0A2000000000000000000004 /* DraftBoardGridView.swift */,
 				0A2000000000000000000005 /* MyRosterView.swift */,
@@ -326,6 +329,7 @@
 				0A100000000000000000000B /* APIService.swift in Sources */,
 				0A100000000000000000000C /* DraftViewModel.swift in Sources */,
 				0A100000000000000000000F /* WebSocketManager.swift in Sources */,
+				0A1000000000000000000010 /* LeagueHubView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

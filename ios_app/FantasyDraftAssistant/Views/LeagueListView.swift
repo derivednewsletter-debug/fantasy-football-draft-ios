@@ -39,8 +39,10 @@ struct LeagueListView: View {
                     .accessibilityLabel("Create league")
                 }
             }
+            // Opening a league lands on its hub (overview) — the draft room
+            // is entered deliberately from there, not jumped straight into.
             .navigationDestination(for: String.self) { leagueName in
-                DraftRoomView(leagueName: leagueName)
+                LeagueHubView(leagueName: leagueName)
             }
             .refreshable { await vm.loadLeagues() }
             .task { await vm.loadLeagues() }

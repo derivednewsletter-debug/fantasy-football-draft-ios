@@ -56,6 +56,17 @@ final class DraftViewModel {
         }
     }
 
+    // MARK: - League hub
+
+    /// Load a league's overview WITHOUT connecting the live draft socket.
+    /// Used by the hub screen — the draft feed only starts when the user
+    /// actually enters the draft room.
+    func loadLeagueOverview(_ name: String) async {
+        selectedLeagueName = name
+        recommendations = nil  // never show a previous league's AI picks
+        await loadState()
+    }
+
     // MARK: - Draft room
 
     func openLeague(_ name: String) async {
