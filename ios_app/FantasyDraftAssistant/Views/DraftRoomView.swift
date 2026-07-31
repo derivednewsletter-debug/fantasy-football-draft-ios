@@ -52,6 +52,17 @@ struct DraftRoomView: View {
                         }
                         .foregroundStyle(.green)
                         .transition(.opacity)
+                    } else {
+                        // Socket unavailable (e.g. serverless deployment) —
+                        // show that the room is auto-refreshing instead.
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.system(size: 10))
+                            Text("AUTO")
+                                .font(.caption2.weight(.heavy))
+                        }
+                        .foregroundStyle(.secondary)
+                        .transition(.opacity)
                     }
                     Button {
                         Task { await vm.loadState() }

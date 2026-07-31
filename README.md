@@ -192,7 +192,58 @@ curl "http://127.0.0.1:8000/leagues/Friday%20Night%20Legends/recommendations?ai=
 
 ---
 
-## 4. Draft Engine Notes
+## 4. Deploy the backend to Vercel
+
+The repo ships a ready-to-deploy serverless setup (`vercel.json` +
+`api/index.py`) modeled on the web app. Deploy from the `fantasy_app/`
+project root:
+
+```bash
+vercel --prod
+```
+
+What happens:
+- **`api/index.py`** wraps the FastAPI app in **Mangum**, the ASGI adapter
+  Vercel's Python runtime needs, and redirects league storage to
+  `/tmp/leagues` (the only writable location on Vercel).
+- **`vercel.json`** routes every request to that single function.
+- The root **`requirements.txt`** (backend deps + `mangum`) is what Vercel
+  installs.
+
+### ⚠️ Storage is ephemeral on Vercel
+
+Serverless functions are recycled constantly, and `/tmp` is wiped on every
+cold start. **Leagues created on the deployed backend can disappear.** The
+backend always starts empty after a recycle, so:
+
+- Use the deployed backend for demoing / one-shot drafts.
+- For durable data, run the backend locally (`uvicorn backend.main:app`) or
+  on a long-running host — the storage layer is a drop-in JSON-file store.
+
+### Environment variables (Vercel project settings)
+
+| Variable | Purpose |
+|----------|---------|
+| `NVIDIA_API_KEY` | Enables NVIDIA NIM AI recommendations (endpoint falls back to pure VBD without it) |
+
+### iOS pointing at the deployed URL
+
+The app already reads its backend URL from `UserDefaults` key `apiBaseURL`.
+Point it at your Vercel deployment (e.g. `https://your-app.vercel.app`):
+
+```swift
+UserDefaults.standard.set("https://your-app.vercel.app", forKey: "apiBaseURL")
+```
+
+**Vercel doesn't support WebSockets**, so the live draft socket won't connect
+in production. The app detects this automatically: the toolbar shows an
+**AUTO** chip instead of **LIVE**, and the draft room falls back to
+auto-refreshing state via REST every 4 seconds — picks from other devices
+still show up, just on a short poll instead of a push.
+
+---
+
+## 5. Draft Engine Notes
 
 - **Snake order** — odd rounds go 1→N, even rounds N→1; the API reports exactly
   how many picks before your turn.

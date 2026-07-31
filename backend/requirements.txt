@@ -1,6 +1,7 @@
 fastapi>=0.110.0
 uvicorn[standard]>=0.29.0
 pydantic>=2.6.0
+mangum>=0.17.0  # ASGI adapter for Vercel serverless (api/index.py)
 # Needed by Starlette's TestClient for the WebSocket E2E tests
 wsproto>=1.2.0
 thefuzz>=0.20.0
