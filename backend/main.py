@@ -1,6 +1,9 @@
 """FastAPI backend for the Fantasy Football Draft Assistant.
 
-Exposes the existing Python draft engine (VBD + NVIDIA NIM AI) over REST.
+Exposes the existing Python draft engine (VBD + NVIDIA NIM AI) over REST,
+with email/password accounts so each user's leagues and drafts are stored
+separately.
+
 Run with:  uvicorn backend.main:app --host 0.0.0.0 --port 8000
 """
 
@@ -8,10 +11,11 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.concurrency import run_in_threadpool
 
+from . import auth
 from .engine import (
     League,
     build_draft_matrix,
@@ -19,25 +23,35 @@ from .engine import (
     recommend,
     recommend_ai,
 )
-from .engine.store import create_league, delete_league, list_leagues, load_league
+from .engine.store import (
+    create_league,
+    delete_league,
+    list_leagues,
+    load_league,
+    total_leagues,
+)
 from .engine.store import update_league as _update_league
 from .engine.ws_manager import manager as ws_manager
 from .schemas import (
+    AuthResponse,
     HealthResponse,
     LeagueCreate,
     LeagueState,
     LeagueSummary,
+    LoginRequest,
+    MeResponse,
     PickRequest,
     PickResult,
     RecommendationsResponse,
     Recommendation,
+    SignupRequest,
     UndoResult,
 )
 
 app = FastAPI(
     title="Fantasy Draft Assistant API",
-    description="Multi-league fantasy football draft engine + AI recommendations.",
-    version="1.0.0",
+    description="Multi-league fantasy football draft engine + AI recommendations, with per-user accounts.",
+    version="1.1.0",
 )
 
 # Allow the iOS simulator / device and local dev clients.
@@ -50,8 +64,81 @@ app.add_middleware(
 )
 
 
-def _load_or_404(name: str) -> League:
-    league = load_league(name)
+# ---------------------------------------------------------------------------
+# Auth dependency
+# ---------------------------------------------------------------------------
+
+def get_current_user(authorization: Optional[str] = Header(default=None)) -> str:
+    """Resolve the bearer token from the Authorization header to an email."""
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    token = authorization.split(" ", 1)[1].strip()
+    email = auth.resolve_token(token)
+    if email is None:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    return email
+
+
+# ---------------------------------------------------------------------------
+# Auth endpoints
+# ---------------------------------------------------------------------------
+
+@app.post("/auth/signup", response_model=AuthResponse, status_code=201, tags=["auth"])
+def signup(body: SignupRequest):
+    try:
+        user = auth.create_user(body.email, body.password)
+    except auth.AuthError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    return AuthResponse(token=auth.issue_token(user["email"]), email=user["email"])
+
+
+@app.post("/auth/login", response_model=AuthResponse, tags=["auth"])
+def login(body: LoginRequest):
+    user = auth.authenticate_user(body.email, body.password)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    return AuthResponse(token=auth.issue_token(user["email"]), email=user["email"])
+
+
+@app.post("/auth/logout", tags=["auth"])
+def logout(authorization: Optional[str] = Header(default=None)):
+    if authorization and authorization.lower().startswith("bearer "):
+        token = authorization.split(" ", 1)[1].strip()
+        auth.revoke_token(token)
+    return {"success": True}
+
+
+@app.get("/auth/me", response_model=MeResponse, tags=["auth"])
+def me(user_email: str = Depends(get_current_user)):
+    return MeResponse(email=user_email)
+
+
+# ---------------------------------------------------------------------------
+# Health
+# ---------------------------------------------------------------------------
+
+@app.get("/", response_model=HealthResponse, tags=["system"])
+def health():
+    try:
+        from .engine.ai_advisor import is_available as ai_available
+        ai_ok = ai_available()
+    except ImportError:
+        # openai / ai_advisor dependencies not installed — engine degrades gracefully.
+        ai_ok = False
+
+    return HealthResponse(
+        status="ok",
+        leagues=total_leagues(),
+        ai_available=ai_ok,
+    )
+
+
+# ---------------------------------------------------------------------------
+# League helpers
+# ---------------------------------------------------------------------------
+
+def _load_or_404(name: str, user_id: str) -> League:
+    league = load_league(name, user_id)
     if league is None:
         raise HTTPException(status_code=404, detail=f"League '{name}' not found")
     return league
@@ -111,37 +198,17 @@ def _recommendation_dict(r: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Health
-# ---------------------------------------------------------------------------
-
-@app.get("/", response_model=HealthResponse, tags=["system"])
-def health():
-    try:
-        from .engine.ai_advisor import is_available as ai_available
-        ai_ok = ai_available()
-    except ImportError:
-        # openai / ai_advisor dependencies not installed — engine degrades gracefully.
-        ai_ok = False
-
-    return HealthResponse(
-        status="ok",
-        leagues=len(list_leagues()),
-        ai_available=ai_ok,
-    )
-
-
-# ---------------------------------------------------------------------------
 # Leagues
 # ---------------------------------------------------------------------------
 
 @app.get("/leagues", response_model=list[LeagueSummary], tags=["leagues"])
-def get_leagues():
-    """List all active league draft configurations."""
-    return list_leagues()
+def get_leagues(user_id: str = Depends(get_current_user)):
+    """List all active league draft configurations for the signed-in user."""
+    return list_leagues(user_id)
 
 
 @app.post("/leagues", response_model=LeagueSummary, status_code=201, tags=["leagues"])
-def post_league(body: LeagueCreate):
+def post_league(body: LeagueCreate, user_id: str = Depends(get_current_user)):
     """Create a new league (team count, pick position, scoring, roster layout)."""
     # League names are used as URL path segments by every other endpoint and
     # percent-encoded by clients — a literal "/" can never round-trip through
@@ -152,13 +219,14 @@ def post_league(body: LeagueCreate):
             status_code=400,
             detail="League name cannot contain '/', '\\', '?', '#', or '%' and cannot start with '.'",
         )
-    if load_league(body.name) is not None:
+    if load_league(body.name, user_id) is not None:
         raise HTTPException(status_code=409, detail=f"League '{body.name}' already exists")
     league = create_league(
         name=body.name,
         num_teams=body.num_teams,
         user_team_number=body.user_team_number,
         scoring_format=body.scoring_format,
+        user_id=user_id,
     )
     return _league_summary(league)
 
@@ -168,30 +236,42 @@ def post_league(body: LeagueCreate):
 # ---------------------------------------------------------------------------
 
 @app.get("/leagues/{league_id}/state", response_model=LeagueState, tags=["draft"])
-def get_state(league_id: str):
+def get_state(league_id: str, user_id: str = Depends(get_current_user)):
     """Get full current draft state (round, pick, on-the-clock team, rosters)."""
-    league = _load_or_404(league_id)
+    league = _load_or_404(league_id, user_id)
     return LeagueState(**_state_payload(league))
 
 
 @app.websocket("/leagues/{league_id}/ws")
-async def league_ws(websocket: WebSocket, league_id: str):
+async def league_ws(websocket: WebSocket, league_id: str, token: str = Query("")):
     """Live draft feed: pushes every state change to all connected devices.
 
-    On connect the client immediately receives the current state envelope
-    ({"type": "state", "league_id": ..., "state": {...}}), then every
-    successful pick/undo is broadcast to all subscribers of the league.
-    The server also answers "ping" text frames with "pong" so clients can
-    keep the connection alive.
+    Auth is taken from the Authorization header when present, falling back to
+    the `token` query parameter (kept for clients that can't set WS headers).
+    On connect the client immediately receives the current state envelope,
+    then every successful pick/undo is broadcast to all subscribers of the
+    league.  The server also answers "ping" text frames with "pong".
     """
     await websocket.accept()
 
-    ws_manager.connect(league_id, websocket)
+    # Prefer the header (not logged) over the query param (loggable).
+    header_auth = websocket.headers.get("authorization", "")
+    if header_auth.lower().startswith("bearer "):
+        token = header_auth.split(" ", 1)[1].strip()
+    user_email = auth.resolve_token(token)
+    if user_email is None:
+        await websocket.send_json({"type": "error", "detail": "Not authenticated"})
+        await websocket.close(code=4401)
+        return
+
+    # Leagues are per-user, so the broadcast channel is namespaced by user.
+    channel = f"{user_email}|{league_id}"
+    ws_manager.connect(channel, websocket)
     try:
         # Fresh read AFTER registering: a concurrent pick's _update_league
         # saves to disk before broadcasting, so this load is consistent with
         # any broadcast already in flight (no stale initial snapshot).
-        league = load_league(league_id)
+        league = load_league(league_id, user_email)
         if league is None:
             await websocket.send_json({"type": "error", "detail": f"League '{league_id}' not found"})
             await websocket.close(code=4404)
@@ -210,11 +290,11 @@ async def league_ws(websocket: WebSocket, league_id: str):
     except WebSocketDisconnect:
         pass
     finally:
-        ws_manager.disconnect(league_id, websocket)
+        ws_manager.disconnect(channel, websocket)
 
 
 @app.post("/leagues/{league_id}/pick", response_model=PickResult, tags=["draft"])
-async def make_pick(league_id: str, body: PickRequest):
+async def make_pick(league_id: str, body: PickRequest, user_id: str = Depends(get_current_user)):
     """Submit a pick for the team currently on the clock (fuzzy match)."""
     try:
         def _pick(league: League):
@@ -231,7 +311,7 @@ async def make_pick(league_id: str, body: PickRequest):
 
         # Blocking store work runs in the threadpool; broadcast happens on the
         # event loop so WebSocket sends are safe.
-        league, (pick, error) = await run_in_threadpool(_update_league, league_id, _pick)
+        league, (pick, error) = await run_in_threadpool(_update_league, league_id, user_id, _pick)
     except KeyError:
         raise HTTPException(status_code=404, detail=f"League '{league_id}' not found")
 
@@ -239,21 +319,21 @@ async def make_pick(league_id: str, body: PickRequest):
         return PickResult(success=False, error=error)
 
     await ws_manager.broadcast(
-        league_id,
+        f"{user_id}|{league.name}",
         {"type": "state", "league_id": league.name, "state": _state_payload(league)},
     )
     return PickResult(success=True, pick=pick)
 
 
 @app.post("/leagues/{league_id}/undo", response_model=UndoResult, tags=["draft"])
-async def undo_pick(league_id: str):
+async def undo_pick(league_id: str, user_id: str = Depends(get_current_user)):
     """Roll back the last draft pick."""
     try:
         def _undo(league: League):
             ok = league.undo_last_pick()
             return ok, (None if ok else "No picks to undo")
 
-        league, (ok, error) = await run_in_threadpool(_update_league, league_id, _undo)
+        league, (ok, error) = await run_in_threadpool(_update_league, league_id, user_id, _undo)
     except KeyError:
         raise HTTPException(status_code=404, detail=f"League '{league_id}' not found")
 
@@ -261,7 +341,7 @@ async def undo_pick(league_id: str):
         return UndoResult(success=False, error=error)
 
     await ws_manager.broadcast(
-        league_id,
+        f"{user_id}|{league.name}",
         {"type": "state", "league_id": league.name, "state": _state_payload(league)},
     )
     return UndoResult(success=True)
@@ -272,9 +352,10 @@ async def undo_pick(league_id: str):
 # ---------------------------------------------------------------------------
 
 @app.get("/leagues/{league_id}/recommendations", response_model=RecommendationsResponse, tags=["recommendations"])
-def get_recommendations(league_id: str, ai: bool = Query(True, description="Include NVIDIA NIM AI analysis")):
+def get_recommendations(league_id: str, ai: bool = Query(True, description="Include NVIDIA NIM AI analysis"),
+                        user_id: str = Depends(get_current_user)):
     """Trigger the recommendation engine for the active user's turn."""
-    league = _load_or_404(league_id)
+    league = _load_or_404(league_id, user_id)
     recs = recommend(league)
 
     ai_analysis: Optional[str] = None
@@ -311,8 +392,8 @@ def get_recommendations(league_id: str, ai: bool = Query(True, description="Incl
 # ---------------------------------------------------------------------------
 
 @app.delete("/leagues/{league_id}", tags=["leagues"])
-def remove_league(league_id: str):
+def remove_league(league_id: str, user_id: str = Depends(get_current_user)):
     """Delete a league (admin convenience)."""
-    if not delete_league(league_id):
+    if not delete_league(league_id, user_id):
         raise HTTPException(status_code=404, detail=f"League '{league_id}' not found")
     return {"success": True}

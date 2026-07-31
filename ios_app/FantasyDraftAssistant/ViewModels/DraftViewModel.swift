@@ -32,6 +32,10 @@ final class DraftViewModel {
     /// so picks made by other devices still show up.
     private var pollTask: Task<Void, Never>?
 
+    /// Invoked when the API returns 401 (expired/revoked token) so the app
+    /// can bounce back to the sign-in screen.
+    var onSessionExpired: (() -> Void)?
+
     // MARK: - League list
 
     func loadLeagues() async {
@@ -122,6 +126,13 @@ final class DraftViewModel {
         do {
             state = try await api.leagueState(name)
             quickPickText = ""
+        } catch let error as APIError {
+            // An expired/revoked token should bounce to sign-in even during
+            // background polling.
+            if case .http(let code, _) = error, code == 401 {
+                onSessionExpired?()
+            }
+            // Other transient failures are silenced — the next poll retries.
         } catch {
             // Silence transient failures — the next poll retries.
         }
@@ -180,6 +191,24 @@ final class DraftViewModel {
         }
     }
 
+    // MARK: - Reset
+
+    /// Clear all user-scoped draft data (called on sign-out / session expiry
+    /// so the next account never sees the previous user's leagues).
+    func reset() {
+        leagues = []
+        state = nil
+        recommendations = nil
+        selectedLeagueName = nil
+        quickPickText = ""
+        notice = nil
+        noticeIsError = false
+        isLiveConnected = false
+        pollTask?.cancel()
+        pollTask = nil
+        ws.disconnect()
+    }
+
     // MARK: - Helpers
 
     /// Players matching the quick-pick text (auto-complete suggestions).
@@ -198,6 +227,11 @@ final class DraftViewModel {
     }
 
     private func presentError(_ error: Error) {
+        if let apiError = error as? APIError,
+           case .http(let code, _) = apiError, code == 401 {
+            onSessionExpired?()
+            return
+        }
         notice = error.localizedDescription
         noticeIsError = true
     }

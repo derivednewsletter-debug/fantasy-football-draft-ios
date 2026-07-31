@@ -3,6 +3,7 @@ import SwiftUI
 /// Dashboard listing all leagues with status badges and quick-create.
 struct LeagueListView: View {
     @Environment(DraftViewModel.self) private var vm
+    @Environment(AuthViewModel.self) private var auth
 
     @State private var newName = ""
     @State private var newTeams = 12
@@ -30,13 +31,29 @@ struct LeagueListView: View {
             }
             .navigationTitle("Draft Assistant")
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        vm.showCreateLeague = true
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
+                ToolbarItem(placement: .topBarLeading) {
+                    if let email = auth.currentUserEmail {
+                        Text(email)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                     }
-                    .accessibilityLabel("Create league")
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    HStack(spacing: 14) {
+                        Button {
+                            vm.showCreateLeague = true
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                        }
+                        .accessibilityLabel("Create league")
+
+                        Button {
+                            auth.signOut()
+                        } label: {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                        }
+                        .accessibilityLabel("Sign out")
+                    }
                 }
             }
             // Opening a league lands on its hub (overview) — the draft room

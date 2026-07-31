@@ -18,11 +18,20 @@ enum APIError: LocalizedError {
 }
 
 /// Async/await networking layer for the Fantasy Draft backend.
+///
+/// The base URL is read from `UserDefaults["apiBaseURL"]` on every request so
+/// the sign-in screen's backend URL field takes effect immediately.  When an
+/// account is signed in, its bearer token is attached to every request.
 struct APIService {
     /// Point this at your backend (simulator: http://127.0.0.1:8000,
-    /// physical device: http://<your-mac-LAN-IP>:8000).
-    var baseURL: String = UserDefaults.standard.string(forKey: "apiBaseURL")
-        ?? "http://127.0.0.1:8000"
+    /// physical device: http://<your-mac-LAN-IP>:8000, or the deployed URL).
+    var baseURL: String {
+        UserDefaults.standard.string(forKey: "apiBaseURL") ?? "http://127.0.0.1:8000"
+    }
+
+    private var authToken: String? {
+        UserDefaults.standard.string(forKey: "authToken")
+    }
 
     private let decoder: JSONDecoder = {
         let d = JSONDecoder()
@@ -45,12 +54,16 @@ struct APIService {
     }
 
     private func request<T: Decodable>(_ path: String, method: String = "GET",
-                                       body: (any Encodable)? = nil) async throws -> T {
+                                       body: (any Encodable)? = nil,
+                                       authenticated: Bool = true) async throws -> T {
         guard let url = URL(string: baseURL + path) else { throw APIError.invalidURL }
 
         var req = URLRequest(url: url)
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if authenticated, let token = authToken {
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
 
         if let body {
             req.httpBody = try encoder.encode(AnyEncodable(body))
@@ -80,10 +93,32 @@ struct APIService {
         }
     }
 
+    // MARK: - Auth
+
+    func signup(email: String, password: String) async throws -> AuthResponse {
+        try await request("/auth/signup", method: "POST",
+                          body: SignupRequest(email: email, password: password),
+                          authenticated: false)
+    }
+
+    func login(email: String, password: String) async throws -> AuthResponse {
+        try await request("/auth/login", method: "POST",
+                          body: LoginRequest(email: email, password: password),
+                          authenticated: false)
+    }
+
+    func logout() async throws {
+        let _: EmptyResponse = try await request("/auth/logout", method: "POST")
+    }
+
+    func me() async throws -> MeResponse {
+        try await request("/auth/me")
+    }
+
     // MARK: - Endpoints
 
     func health() async throws -> Health {
-        try await request("/")
+        try await request("/", authenticated: false)
     }
 
     func listLeagues() async throws -> [LeagueSummary] {
@@ -132,6 +167,9 @@ struct UndoResult: Decodable {
     let success: Bool
     let error: String?
 }
+
+/// Placeholder for endpoints that return `{"success": true}`.
+struct EmptyResponse: Decodable {}
 
 // MARK: - Helpers
 

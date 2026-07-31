@@ -8,6 +8,29 @@ from pydantic import BaseModel, Field
 
 
 # ---------------------------------------------------------------------------
+# Auth
+# ---------------------------------------------------------------------------
+
+class SignupRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=254, description="Account email")
+    password: str = Field(..., min_length=6, max_length=128, description="Password (min 6 chars)")
+
+
+class LoginRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=254, description="Account email")
+    password: str = Field(..., min_length=1, description="Password")
+
+
+class AuthResponse(BaseModel):
+    token: str
+    email: str
+
+
+class MeResponse(BaseModel):
+    email: str
+
+
+# ---------------------------------------------------------------------------
 # League
 # ---------------------------------------------------------------------------
 

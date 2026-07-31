@@ -436,18 +436,39 @@ async def test_fuzzy_match_draft_board_reflects_pick(client, make_league):
 from fastapi.testclient import TestClient  # noqa: E402
 
 from backend.main import app as _app  # noqa: E402
+from tests.conftest import signup_and_login  # noqa: E402
+
+
+def _sync_signup(client) -> str:
+    """Sync signup helper for TestClient-based WS tests (fresh uuid account)."""
+    import uuid as _uuid
+
+    email = f"ws-{_uuid.uuid4().hex[:12]}@test.com"
+    resp = client.post("/auth/signup", json={"email": email, "password": "secret123"})
+    assert resp.status_code == 201, resp.text
+    return resp.json()["token"]
+
+
+def _ws_setup(client, name: str, num_teams: int = 12) -> str:
+    """Sign up, create a league, and return the bearer token."""
+    token = _sync_signup(client)
+    headers = {"Authorization": f"Bearer {token}"}
+    resp = client.post(
+        "/leagues",
+        json={"name": name, "num_teams": num_teams,
+              "user_team_number": 4, "scoring_format": "PPR"},
+        headers=headers,
+    )
+    assert resp.status_code == 201, resp.text
+    return token
 
 
 def test_ws_initial_state_envelope():
     """On connect the client receives the current state immediately."""
     with TestClient(_app) as client:
-        resp = client.post("/leagues", json={
-            "name": "WS Initial", "num_teams": 12,
-            "user_team_number": 4, "scoring_format": "PPR",
-        })
-        assert resp.status_code == 201
+        token = _ws_setup(client, "WS Initial")
 
-        with client.websocket_connect("/leagues/WS%20Initial/ws") as ws:
+        with client.websocket_connect("/leagues/WS%20Initial/ws?token=" + token) as ws:
             env = ws.receive_json()
             assert env["type"] == "state"
             assert env["league_id"] == "WS Initial"
@@ -462,16 +483,14 @@ def test_ws_initial_state_envelope():
 def test_ws_broadcasts_pick_to_all_clients():
     """A pick made over REST is pushed to every connected device."""
     with TestClient(_app) as client:
-        client.post("/leagues", json={
-            "name": "WS Broadcast", "num_teams": 8,
-            "user_team_number": 1, "scoring_format": "PPR",
-        })
+        token = _ws_setup(client, "WS Broadcast", num_teams=8)
+        headers = {"Authorization": f"Bearer {token}"}
 
-        with client.websocket_connect("/leagues/WS%20Broadcast/ws") as ws:
+        with client.websocket_connect("/leagues/WS%20Broadcast/ws?token=" + token) as ws:
             ws.receive_json()  # initial snapshot
 
             pick = client.post("/leagues/WS%20Broadcast/pick",
-                               json={"player_name": "Patrick Mahomes"})
+                               json={"player_name": "Patrick Mahomes"}, headers=headers)
             assert pick.json()["success"] is True
 
             update = ws.receive_json()
@@ -484,17 +503,15 @@ def test_ws_broadcasts_pick_to_all_clients():
 def test_ws_broadcasts_undo():
     """Undo pushes the rolled-back state to subscribers."""
     with TestClient(_app) as client:
-        client.post("/leagues", json={
-            "name": "WS Undo", "num_teams": 8,
-            "user_team_number": 1, "scoring_format": "PPR",
-        })
+        token = _ws_setup(client, "WS Undo", num_teams=8)
+        headers = {"Authorization": f"Bearer {token}"}
 
-        with client.websocket_connect("/leagues/WS%20Undo/ws") as ws:
+        with client.websocket_connect("/leagues/WS%20Undo/ws?token=" + token) as ws:
             ws.receive_json()
-            client.post("/leagues/WS%20Undo/pick", json={"player_name": "Josh Allen"})
+            client.post("/leagues/WS%20Undo/pick", json={"player_name": "Josh Allen"}, headers=headers)
             ws.receive_json()  # pick broadcast
 
-            undo = client.post("/leagues/WS%20Undo/undo")
+            undo = client.post("/leagues/WS%20Undo/undo", headers=headers)
             assert undo.json()["success"] is True
 
             update = ws.receive_json()
@@ -506,11 +523,8 @@ def test_ws_broadcasts_undo():
 def test_ws_ping_pong():
     """The server answers ping frames so clients can keep alive."""
     with TestClient(_app) as client:
-        client.post("/leagues", json={
-            "name": "WS Ping", "num_teams": 8,
-            "user_team_number": 1, "scoring_format": "PPR",
-        })
-        with client.websocket_connect("/leagues/WS%20Ping/ws") as ws:
+        token = _ws_setup(client, "WS Ping", num_teams=8)
+        with client.websocket_connect("/leagues/WS%20Ping/ws?token=" + token) as ws:
             ws.receive_json()  # initial snapshot
             ws.send_text("ping")
             assert ws.receive_text() == "pong"
@@ -519,7 +533,128 @@ def test_ws_ping_pong():
 def test_ws_unknown_league_gets_error():
     """Connecting to a nonexistent league returns an error envelope."""
     with TestClient(_app) as client:
-        with client.websocket_connect("/leagues/NoSuchLeague/ws") as ws:
+        token = _sync_signup(client)
+        with client.websocket_connect("/leagues/NoSuchLeague/ws?token=" + token) as ws:
             env = ws.receive_json()
             assert env["type"] == "error"
             assert "not found" in env["detail"]
+
+
+def test_ws_rejects_missing_token():
+    """Connecting without a token is rejected (4401)."""
+    with TestClient(_app) as client:
+        with client.websocket_connect("/leagues/Any/ws") as ws:
+            env = ws.receive_json()
+            assert env["type"] == "error"
+            assert "authenticated" in env["detail"]
+
+
+# ===========================================================================
+# Auth
+# ===========================================================================
+
+async def test_signup_creates_account_and_token(bare_client):
+    """Signup returns a working token and the normalized email."""
+    resp = await bare_client.post("/auth/signup",
+                                  json={"email": "  Alice@Example.com ", "password": "hunter22"})
+    assert resp.status_code == 201, resp.text
+    body = resp.json()
+    assert body["email"] == "alice@example.com"
+    assert body["token"]
+    # Token works for an authed call
+    me = await bare_client.get("/auth/me", headers={"Authorization": f"Bearer {body['token']}"})
+    assert me.status_code == 200
+    assert me.json()["email"] == "alice@example.com"
+
+
+async def test_signup_duplicate_email_conflict(bare_client):
+    """Signing up with a taken email returns 409."""
+    await bare_client.post("/auth/signup", json={"email": "dup@test.com", "password": "secret123"})
+    resp = await bare_client.post("/auth/signup", json={"email": "dup@test.com", "password": "secret123"})
+    assert resp.status_code == 409
+
+
+async def test_signup_short_password_rejected(bare_client):
+    resp = await bare_client.post("/auth/signup", json={"email": "short@test.com", "password": "123"})
+    assert resp.status_code == 422  # Pydantic min_length validation
+
+
+async def test_login_success_and_wrong_password(bare_client):
+    """Correct credentials log in; wrong ones return 401."""
+    await bare_client.post("/auth/signup", json={"email": "bob@test.com", "password": "secret123"})
+
+    ok = await bare_client.post("/auth/login", json={"email": "bob@test.com", "password": "secret123"})
+    assert ok.status_code == 200
+    assert ok.json()["token"]
+
+    bad = await bare_client.post("/auth/login", json={"email": "bob@test.com", "password": "wrongpass"})
+    assert bad.status_code == 401
+    assert "Invalid" in bad.json()["detail"]
+
+    missing = await bare_client.post("/auth/login", json={"email": "nobody@test.com", "password": "secret123"})
+    assert missing.status_code == 401
+
+
+async def test_protected_routes_require_token(bare_client):
+    """League endpoints return 401 without a valid bearer token."""
+    for method, path in [("GET", "/leagues"), ("POST", "/leagues"),
+                         ("GET", "/leagues/Any/state"), ("GET", "/auth/me")]:
+        resp = await bare_client.request(method, path, json={
+            "name": "X", "num_teams": 8, "user_team_number": 1, "scoring_format": "PPR",
+        })
+        assert resp.status_code == 401, f"{method} {path}: {resp.status_code}"
+
+    # Garbage token
+    resp = await bare_client.get("/auth/me", headers={"Authorization": "Bearer not-a-real-token"})
+    assert resp.status_code == 401
+
+
+async def test_league_data_isolated_between_users(client, bare_client):
+    """User A's leagues are invisible to user B, and vice versa."""
+    # client is authed as user A
+    resp = await client.post("/leagues", json={
+        "name": "Secret League", "num_teams": 8,
+        "user_team_number": 1, "scoring_format": "PPR",
+    })
+    assert resp.status_code == 201
+
+    # User B (fresh account on the bare client) sees an empty list and 404s
+    token_b, _ = await signup_and_login(bare_client)
+    bare_client.headers["Authorization"] = f"Bearer {token_b}"
+
+    lst = await bare_client.get("/leagues")
+    assert lst.status_code == 200
+    assert lst.json() == []
+
+    state = await bare_client.get("/leagues/Secret%20League/state")
+    assert state.status_code == 404
+
+    # And user A still sees their own league
+    mine = await client.get("/leagues")
+    names = {l["name"] for l in mine.json()}
+    assert "Secret League" in names
+
+
+async def test_logout_revokes_token(client, bare_client):
+    """After logout the same token no longer works."""
+    token, _ = await signup_and_login(bare_client)
+    bare_client.headers["Authorization"] = f"Bearer {token}"
+
+    out = await bare_client.post("/auth/logout")
+    assert out.status_code == 200
+
+    me = await bare_client.get("/auth/me")
+    assert me.status_code == 401
+
+
+async def test_health_is_public_and_counts_leagues(client):
+    """Health stays public and reports the total league count."""
+    await client.post("/leagues", json={
+        "name": "Health League", "num_teams": 8,
+        "user_team_number": 1, "scoring_format": "PPR",
+    })
+    resp = await client.get("/")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "ok"
+    assert body["leagues"] >= 1

@@ -25,7 +25,6 @@ final class WebSocketManager {
     /// Retained for the socket's lifetime — a deallocated session cancels its
     /// tasks, so it must live as long as the connection.
     private var session: URLSession?
-    private var baseURL: String
     private var leagueName: String?
     private var reconnectAttempts = 0
     private var isIntentionalClose = false
@@ -36,8 +35,10 @@ final class WebSocketManager {
         return d
     }()
 
-    init(baseURL: String = APIService().baseURL) {
-        self.baseURL = baseURL
+    /// Read fresh on every connect so the sign-in screen's backend URL field
+    /// takes effect even after the manager was created at app launch.
+    private var baseURL: String {
+        UserDefaults.standard.string(forKey: "apiBaseURL") ?? "http://127.0.0.1:8000"
     }
 
     /// Open a live connection to a league's draft feed.
@@ -57,7 +58,16 @@ final class WebSocketManager {
 
         let newSession = URLSession(configuration: .default)
         session = newSession
-        let socket = newSession.webSocketTask(with: url)
+
+        // Use the request-based initializer so the bearer token rides in the
+        // Authorization header (the backend prefers it) instead of the query
+        // string, where it could leak into proxy/access logs. The query param
+        // is kept as a harmless fallback for any client that strips headers.
+        var request = URLRequest(url: url)
+        if let token = UserDefaults.standard.string(forKey: "authToken"), !token.isEmpty {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        let socket = newSession.webSocketTask(with: request)
         task = socket
         socket.resume()
         receiveLoop()
@@ -144,6 +154,10 @@ final class WebSocketManager {
         let wsBase = baseURL
             .replacingOccurrences(of: "http://", with: "ws://")
             .replacingOccurrences(of: "https://", with: "wss://")
-        return URL(string: "\(wsBase)/leagues/\(encoded)/ws")
+
+        // The bearer token rides in the Authorization header (set above), so
+        // it never appears in the URL or proxy/access logs. No query-param
+        // fallback here — the iOS client can always set headers.
+        return URLComponents(string: "\(wsBase)/leagues/\(encoded)/ws")?.url
     }
 }

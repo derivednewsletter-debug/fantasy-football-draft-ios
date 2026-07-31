@@ -23,6 +23,9 @@
 		0A100000000000000000000E /* FantasyDraftAssistantUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2000000000000000000011 /* FantasyDraftAssistantUITests.swift */; };
 		0A100000000000000000000F /* WebSocketManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2000000000000000000012 /* WebSocketManager.swift */; };
 		0A1000000000000000000010 /* LeagueHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2000000000000000000013 /* LeagueHubView.swift */; };
+		0A1000000000000000000011 /* AuthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2000000000000000000014 /* AuthModels.swift */; };
+		0A1000000000000000000012 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2000000000000000000015 /* AuthViewModel.swift */; };
+		0A1000000000000000000013 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2000000000000000000016 /* AuthView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -59,10 +62,12 @@
 		0A2000000000000000000011 /* FantasyDraftAssistantUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FantasyDraftAssistantUITests.swift; sourceTree = "<group>"; };
 		0A2000000000000000000012 /* WebSocketManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketManager.swift; sourceTree = "<group>"; };
 		0A2000000000000000000013 /* LeagueHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeagueHubView.swift; sourceTree = "<group>"; };
-		0A20000000000000000000FF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		0A20000000000000000000FE /* FantasyDraftAssistant.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FantasyDraftAssistant.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		0A20000000000000000000FD /* FantasyDraftAssistantTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FantasyDraftAssistantTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		0A2000000000000000000014 /* AuthModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthModels.swift; sourceTree = "<group>"; };
+		0A2000000000000000000015 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
+		0A2000000000000000000016 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
 		0A20000000000000000000FC /* FantasyDraftAssistantUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FantasyDraftAssistantUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		0A20000000000000000000FD /* FantasyDraftAssistantTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FantasyDraftAssistantTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		0A20000000000000000000FE /* FantasyDraftAssistant.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FantasyDraftAssistant.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -100,16 +105,6 @@
 			);
 			sourceTree = "<group>";
 		};
-		0A4000000000000000000003 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				0A20000000000000000000FE /* FantasyDraftAssistant.app */,
-				0A20000000000000000000FD /* FantasyDraftAssistantTests.xctest */,
-				0A20000000000000000000FC /* FantasyDraftAssistantUITests.xctest */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
 		0A4000000000000000000002 /* FantasyDraftAssistant */ = {
 			isa = PBXGroup;
 			children = (
@@ -118,9 +113,18 @@
 				0A4000000000000000000006 /* Services */,
 				0A4000000000000000000007 /* ViewModels */,
 				0A4000000000000000000008 /* Views */,
-				0A2000000000000000000000FF /* Info.plist */,
 			);
 			path = FantasyDraftAssistant;
+			sourceTree = "<group>";
+		};
+		0A4000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				0A20000000000000000000FE /* FantasyDraftAssistant.app */,
+				0A20000000000000000000FD /* FantasyDraftAssistantTests.xctest */,
+				0A20000000000000000000FC /* FantasyDraftAssistantUITests.xctest */,
+			);
+			name = Products;
 			sourceTree = "<group>";
 		};
 		0A4000000000000000000004 /* App */ = {
@@ -138,6 +142,7 @@
 				0A2000000000000000000008 /* Player.swift */,
 				0A2000000000000000000009 /* Position.swift */,
 				0A200000000000000000000A /* Recommendation.swift */,
+				0A2000000000000000000014 /* AuthModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -155,6 +160,7 @@
 			isa = PBXGroup;
 			children = (
 				0A200000000000000000000C /* DraftViewModel.swift */,
+				0A2000000000000000000015 /* AuthViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -163,6 +169,7 @@
 			isa = PBXGroup;
 			children = (
 				0A2000000000000000000002 /* LeagueListView.swift */,
+				0A2000000000000000000016 /* AuthView.swift */,
 				0A2000000000000000000013 /* LeagueHubView.swift */,
 				0A2000000000000000000003 /* DraftRoomView.swift */,
 				0A2000000000000000000004 /* DraftBoardGridView.swift */,
@@ -252,7 +259,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1500;
-				LastUpgradeCheck = 1500;
+				LastUpgradeCheck = 2660;
 				TargetAttributes = {
 					0A5000000000000000000001 = {
 						CreatedOnToolsVersion = 15.0;
@@ -330,6 +337,9 @@
 				0A100000000000000000000C /* DraftViewModel.swift in Sources */,
 				0A100000000000000000000F /* WebSocketManager.swift in Sources */,
 				0A1000000000000000000010 /* LeagueHubView.swift in Sources */,
+				0A1000000000000000000011 /* AuthModels.swift in Sources */,
+				0A1000000000000000000012 /* AuthViewModel.swift in Sources */,
+				0A1000000000000000000013 /* AuthView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -372,14 +382,29 @@
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -388,11 +413,18 @@
 					"DEBUG=1",
 					"$(inherited)",
 				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -405,20 +437,42 @@
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				VALIDATE_PRODUCT = YES;
@@ -431,6 +485,7 @@
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PU54V7SU2Y;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = FantasyDraftAssistant/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -454,6 +509,7 @@
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PU54V7SU2Y;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = FantasyDraftAssistant/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
