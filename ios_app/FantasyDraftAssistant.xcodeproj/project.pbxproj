@@ -1,0 +1,344 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0A1000000000000000000001 /* FantasyDraftAssistantApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2000000000000000000001 /* FantasyDraftAssistantApp.swift */; };
+		0A1000000000000000000002 /* LeagueListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2000000000000000000002 /* LeagueListView.swift */; };
+		0A1000000000000000000003 /* DraftRoomView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2000000000000000000003 /* DraftRoomView.swift */; };
+		0A1000000000000000000004 /* DraftBoardGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2000000000000000000004 /* DraftBoardGridView.swift */; };
+		0A1000000000000000000005 /* MyRosterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2000000000000000000005 /* MyRosterView.swift */; };
+		0A1000000000000000000006 /* AIRecommendationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2000000000000000000006 /* AIRecommendationView.swift */; };
+		0A1000000000000000000007 /* League.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2000000000000000000007 /* League.swift */; };
+		0A1000000000000000000008 /* Player.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2000000000000000000008 /* Player.swift */; };
+		0A1000000000000000000009 /* Position.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2000000000000000000009 /* Position.swift */; };
+		0A100000000000000000000A /* Recommendation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A200000000000000000000A /* Recommendation.swift */; };
+		0A100000000000000000000B /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A200000000000000000000B /* APIService.swift */; };
+		0A100000000000000000000C /* DraftViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A200000000000000000000C /* DraftViewModel.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0A2000000000000000000001 /* FantasyDraftAssistantApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FantasyDraftAssistantApp.swift; sourceTree = "<group>"; };
+		0A2000000000000000000002 /* LeagueListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeagueListView.swift; sourceTree = "<group>"; };
+		0A2000000000000000000003 /* DraftRoomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraftRoomView.swift; sourceTree = "<group>"; };
+		0A2000000000000000000004 /* DraftBoardGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraftBoardGridView.swift; sourceTree = "<group>"; };
+		0A2000000000000000000005 /* MyRosterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyRosterView.swift; sourceTree = "<group>"; };
+		0A2000000000000000000006 /* AIRecommendationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIRecommendationView.swift; sourceTree = "<group>"; };
+		0A2000000000000000000007 /* League.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = League.swift; sourceTree = "<group>"; };
+		0A2000000000000000000008 /* Player.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Player.swift; sourceTree = "<group>"; };
+		0A2000000000000000000009 /* Position.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Position.swift; sourceTree = "<group>"; };
+		0A200000000000000000000A /* Recommendation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Recommendation.swift; sourceTree = "<group>"; };
+		0A200000000000000000000B /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
+		0A200000000000000000000C /* DraftViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraftViewModel.swift; sourceTree = "<group>"; };
+		0A20000000000000000000FF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		0A20000000000000000000FE /* FantasyDraftAssistant.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FantasyDraftAssistant.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		0A3000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		0A4000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				0A4000000000000000000002 /* FantasyDraftAssistant */,
+				0A4000000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		0A4000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				0A20000000000000000000FE /* FantasyDraftAssistant.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		0A4000000000000000000002 /* FantasyDraftAssistant */ = {
+			isa = PBXGroup;
+			children = (
+				0A4000000000000000000004 /* App */,
+				0A4000000000000000000005 /* Models */,
+				0A4000000000000000000006 /* Services */,
+				0A4000000000000000000007 /* ViewModels */,
+				0A4000000000000000000008 /* Views */,
+				0A2000000000000000000000FF /* Info.plist */,
+			);
+			path = FantasyDraftAssistant;
+			sourceTree = "<group>";
+		};
+		0A4000000000000000000004 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				0A2000000000000000000001 /* FantasyDraftAssistantApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		0A4000000000000000000005 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				0A2000000000000000000007 /* League.swift */,
+				0A2000000000000000000008 /* Player.swift */,
+				0A2000000000000000000009 /* Position.swift */,
+				0A200000000000000000000A /* Recommendation.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		0A4000000000000000000006 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				0A200000000000000000000B /* APIService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		0A4000000000000000000007 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				0A200000000000000000000C /* DraftViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		0A4000000000000000000008 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				0A2000000000000000000002 /* LeagueListView.swift */,
+				0A2000000000000000000003 /* DraftRoomView.swift */,
+				0A2000000000000000000004 /* DraftBoardGridView.swift */,
+				0A2000000000000000000005 /* MyRosterView.swift */,
+				0A2000000000000000000006 /* AIRecommendationView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0A5000000000000000000001 /* FantasyDraftAssistant */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0A7000000000000000000002 /* Build configuration list for PBXNativeTarget "FantasyDraftAssistant" */;
+			buildPhases = (
+				0A6000000000000000000001 /* Sources */,
+				0A3000000000000000000001 /* Frameworks */,
+				0A6000000000000000000002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FantasyDraftAssistant;
+			productName = FantasyDraftAssistant;
+			productReference = 0A20000000000000000000FE /* FantasyDraftAssistant.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		0A8000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					0A5000000000000000000001 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = 0A7000000000000000000001 /* Build configuration list for PBXProject "FantasyDraftAssistant" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 0A4000000000000000000001;
+			productRefGroup = 0A4000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				0A5000000000000000000001 /* FantasyDraftAssistant */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		0A6000000000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		0A6000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0A1000000000000000000001 /* FantasyDraftAssistantApp.swift in Sources */,
+				0A1000000000000000000002 /* LeagueListView.swift in Sources */,
+				0A1000000000000000000003 /* DraftRoomView.swift in Sources */,
+				0A1000000000000000000004 /* DraftBoardGridView.swift in Sources */,
+				0A1000000000000000000005 /* MyRosterView.swift in Sources */,
+				0A1000000000000000000006 /* AIRecommendationView.swift in Sources */,
+				0A1000000000000000000007 /* League.swift in Sources */,
+				0A1000000000000000000008 /* Player.swift in Sources */,
+				0A1000000000000000000009 /* Position.swift in Sources */,
+				0A100000000000000000000A /* Recommendation.swift in Sources */,
+				0A100000000000000000000B /* APIService.swift in Sources */,
+				0A100000000000000000000C /* DraftViewModel.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		0A9000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		0A9000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		0A9000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FantasyDraftAssistant/Info.plist;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fantasy.DraftAssistant;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		0A9000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FantasyDraftAssistant/Info.plist;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fantasy.DraftAssistant;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0A7000000000000000000001 /* Build configuration list for PBXProject "FantasyDraftAssistant" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0A9000000000000000000001 /* Debug */,
+				0A9000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		0A7000000000000000000002 /* Build configuration list for PBXNativeTarget "FantasyDraftAssistant" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0A9000000000000000000003 /* Debug */,
+				0A9000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 0A8000000000000000000001 /* Project object */;
+}

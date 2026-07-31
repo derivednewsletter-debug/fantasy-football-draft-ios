@@ -1,0 +1,7 @@
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+pydantic>=2.6.0
+thefuzz>=0.20.0
+python-Levenshtein>=0.25.0  # optional C accelerator for thefuzz
+openai>=1.30.0
+python-dotenv>=1.0.0

@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+
+# Runtime data (league states are created at runtime)
+backend/data/
+
+# Environment / secrets
+.env
+
+# Xcode / macOS
+.DS_Store
+xcuserdata/
+DerivedData/
+*.xcuserstate
