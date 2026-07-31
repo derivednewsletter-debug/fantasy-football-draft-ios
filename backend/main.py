@@ -118,6 +118,15 @@ def get_leagues():
 @app.post("/leagues", response_model=LeagueSummary, status_code=201, tags=["leagues"])
 def post_league(body: LeagueCreate):
     """Create a new league (team count, pick position, scoring, roster layout)."""
+    # League names are used as URL path segments by every other endpoint and
+    # percent-encoded by clients — a literal "/" can never round-trip through
+    # the router (it is decoded back into a path separator).  Reject early.
+    hostile = {"/", "\\", "?", "#", "%"}
+    if any(ch in body.name for ch in hostile) or body.name.startswith("."):
+        raise HTTPException(
+            status_code=400,
+            detail="League name cannot contain '/', '\\', '?', '#', or '%' and cannot start with '.'",
+        )
     if load_league(body.name) is not None:
         raise HTTPException(status_code=409, detail=f"League '{body.name}' already exists")
     league = create_league(
@@ -165,7 +174,11 @@ def make_pick(league_id: str, body: PickRequest):
         def _pick(league: League):
             if league.completed:
                 return None, "Draft is complete"
-            pick = league.record_pick(body.player_name)
+            try:
+                pick = league.record_pick(body.player_name)
+            except ValueError as exc:
+                # e.g. the team on the clock already has a full roster
+                return None, str(exc)
             if pick is None:
                 return None, f"Could not match '{body.player_name}' to an available player"
             return pick.to_dict(), None

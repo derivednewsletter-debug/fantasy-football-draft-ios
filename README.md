@@ -65,9 +65,42 @@ is missing or the AI call fails.
 python3 backend/_smoke_test.py    # 33 checks: create, state, pick, undo, recs
 ```
 
+### Automated E2E test suite
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r backend/requirements.txt pytest pytest-asyncio httpx
+pytest tests/ -v                  # 38 checks across every endpoint
+```
+
+Covers: league creation across team sizes (8/10/12/14) and scoring formats
+(PPR/Superflex), snake-order pick progression and turn calculation, undo
+rollback integrity, NVIDIA NIM recommendations (mocked), and fuzzy name
+matching edge cases (misspellings, apostrophes, initials, garbage queries).
+
+The suite runs against an isolated temp data dir — no real leagues are
+created, and it works with or without the NVIDIA API key.
+
 ---
 
 ## 2. iOS App
+
+### Run the test suite (requires a Mac with Xcode)
+
+```bash
+cd ios_app
+xcodebuild test \
+  -scheme FantasyDraftAssistant \
+  -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=latest'
+```
+
+- **Unit tests** (`FantasyDraftAssistantTests`): decode the backend JSON
+  contract into the Swift models, verify snake_case→camelCase conversion,
+  Position enum mapping/colors, and turn-probability flags.
+- **UI tests** (`FantasyDraftAssistantUITests`): launch the app and verify the
+  league dashboard renders.
+- The shared scheme lives in `xcshareddata/xcschemes/` so the command works
+  headlessly (no need to open Xcode first).
 
 ### Open in Xcode
 

@@ -277,9 +277,11 @@ class League:
             return None
 
         names = [p.name for p in self.available_players]
-        match, score = fuzz_process.extractOne(player_name, names, score_cutoff=60)
-        if match is None:
+        result = fuzz_process.extractOne(player_name, names, score_cutoff=60)
+        if result is None:
+            # No available player scored above the cutoff
             return None
+        match, score = result
 
         # Reject length-disproportionate matches: thefuzz's partial ratio can
         # inflate the score of a long, unrelated query against a short name
@@ -294,6 +296,9 @@ class League:
 
         team_num = self.team_on_clock
         team = self.teams[team_num - 1]
+
+        if team.is_full:
+            raise ValueError(f"Team {team_num}'s roster is full")
 
         player.is_drafted = True
         player.drafted_by = team_num
@@ -313,6 +318,8 @@ class League:
         )
         self.draft_log.append(pick)
         self.advance_pick()
+        if all(t.is_full for t in self.teams):
+            self.completed = True
         return pick
 
     def undo_last_pick(self) -> bool:
@@ -336,6 +343,8 @@ class League:
         # Remove from team roster
         team = self.teams[last_pick.team_number - 1]
         team.roster = [p for p in team.roster if p.name != last_pick.player_name]
+        # A completed draft is no longer complete after a rollback
+        self.completed = False
         return True
 
     def to_dict(self) -> dict:
