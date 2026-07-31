@@ -8,8 +8,9 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.concurrency import run_in_threadpool
 
 from .engine import (
     League,
@@ -20,6 +21,7 @@ from .engine import (
 )
 from .engine.store import create_league, delete_league, list_leagues, load_league
 from .engine.store import update_league as _update_league
+from .engine.ws_manager import manager as ws_manager
 from .schemas import (
     HealthResponse,
     LeagueCreate,
@@ -67,6 +69,29 @@ def _league_summary(league: League) -> dict:
         "completed": league.completed,
         "total_picks": len(league.draft_log),
         "team_on_clock": league.team_on_clock,
+    }
+
+
+def _state_payload(league: League) -> dict:
+    """Build the full draft-state dict, shared by the REST and WS endpoints."""
+    return {
+        "name": league.name,
+        "num_teams": league.num_teams,
+        "user_team_number": league.user_team_number,
+        "scoring_format": league.scoring_format,
+        "roster_slots": dict(league.roster_slots),
+        "current_round": league.current_round,
+        "current_pick_in_round": league.current_pick_in_round,
+        "overall_pick": league.overall_pick,
+        "is_active": league.is_active,
+        "completed": league.completed,
+        "team_on_clock": league.team_on_clock,
+        "is_user_on_clock": league.is_user_on_clock,
+        "picks_before_user": picks_before_next_user_turn(league),
+        "draft_log": [p.to_dict() for p in league.draft_log],
+        "teams": [t.to_dict() for t in league.teams],
+        "available_players": [p.to_dict() for p in league.available_players],
+        "matrix": build_draft_matrix(league),
     }
 
 
@@ -146,29 +171,50 @@ def post_league(body: LeagueCreate):
 def get_state(league_id: str):
     """Get full current draft state (round, pick, on-the-clock team, rosters)."""
     league = _load_or_404(league_id)
-    return LeagueState(
-        name=league.name,
-        num_teams=league.num_teams,
-        user_team_number=league.user_team_number,
-        scoring_format=league.scoring_format,
-        roster_slots=dict(league.roster_slots),
-        current_round=league.current_round,
-        current_pick_in_round=league.current_pick_in_round,
-        overall_pick=league.overall_pick,
-        is_active=league.is_active,
-        completed=league.completed,
-        team_on_clock=league.team_on_clock,
-        is_user_on_clock=league.is_user_on_clock,
-        picks_before_user=picks_before_next_user_turn(league),
-        draft_log=[p.to_dict() for p in league.draft_log],
-        teams=[t.to_dict() for t in league.teams],
-        available_players=[p.to_dict() for p in league.available_players],
-        matrix=build_draft_matrix(league),
-    )
+    return LeagueState(**_state_payload(league))
+
+
+@app.websocket("/leagues/{league_id}/ws")
+async def league_ws(websocket: WebSocket, league_id: str):
+    """Live draft feed: pushes every state change to all connected devices.
+
+    On connect the client immediately receives the current state envelope
+    ({"type": "state", "league_id": ..., "state": {...}}), then every
+    successful pick/undo is broadcast to all subscribers of the league.
+    The server also answers "ping" text frames with "pong" so clients can
+    keep the connection alive.
+    """
+    await websocket.accept()
+
+    ws_manager.connect(league_id, websocket)
+    try:
+        # Fresh read AFTER registering: a concurrent pick's _update_league
+        # saves to disk before broadcasting, so this load is consistent with
+        # any broadcast already in flight (no stale initial snapshot).
+        league = load_league(league_id)
+        if league is None:
+            await websocket.send_json({"type": "error", "detail": f"League '{league_id}' not found"})
+            await websocket.close(code=4404)
+            return
+
+        # Initial snapshot so clients can render immediately without polling.
+        await websocket.send_json({
+            "type": "state",
+            "league_id": league.name,
+            "state": _state_payload(league),
+        })
+        while True:
+            message = await websocket.receive_text()
+            if message == "ping":
+                await websocket.send_text("pong")
+    except WebSocketDisconnect:
+        pass
+    finally:
+        ws_manager.disconnect(league_id, websocket)
 
 
 @app.post("/leagues/{league_id}/pick", response_model=PickResult, tags=["draft"])
-def make_pick(league_id: str, body: PickRequest):
+async def make_pick(league_id: str, body: PickRequest):
     """Submit a pick for the team currently on the clock (fuzzy match)."""
     try:
         def _pick(league: League):
@@ -183,29 +229,41 @@ def make_pick(league_id: str, body: PickRequest):
                 return None, f"Could not match '{body.player_name}' to an available player"
             return pick.to_dict(), None
 
-        _, (pick, error) = _update_league(league_id, _pick)
+        # Blocking store work runs in the threadpool; broadcast happens on the
+        # event loop so WebSocket sends are safe.
+        league, (pick, error) = await run_in_threadpool(_update_league, league_id, _pick)
     except KeyError:
         raise HTTPException(status_code=404, detail=f"League '{league_id}' not found")
 
     if error:
         return PickResult(success=False, error=error)
+
+    await ws_manager.broadcast(
+        league_id,
+        {"type": "state", "league_id": league.name, "state": _state_payload(league)},
+    )
     return PickResult(success=True, pick=pick)
 
 
 @app.post("/leagues/{league_id}/undo", response_model=UndoResult, tags=["draft"])
-def undo_pick(league_id: str):
+async def undo_pick(league_id: str):
     """Roll back the last draft pick."""
     try:
         def _undo(league: League):
             ok = league.undo_last_pick()
             return ok, (None if ok else "No picks to undo")
 
-        _, (ok, error) = _update_league(league_id, _undo)
+        league, (ok, error) = await run_in_threadpool(_update_league, league_id, _undo)
     except KeyError:
         raise HTTPException(status_code=404, detail=f"League '{league_id}' not found")
 
     if not ok:
         return UndoResult(success=False, error=error)
+
+    await ws_manager.broadcast(
+        league_id,
+        {"type": "state", "league_id": league.name, "state": _state_payload(league)},
+    )
     return UndoResult(success=True)
 
 

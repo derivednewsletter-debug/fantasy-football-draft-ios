@@ -425,3 +425,101 @@ async def test_fuzzy_match_draft_board_reflects_pick(client, make_league):
     state = (await client.get("/leagues/Fuzzy%20Board/state")).json()
     assert state["matrix"][0]["roster"][0]["name"] == "Christian McCaffrey"
     assert state["matrix"][0]["pick_count"] == 1
+
+
+# ===========================================================================
+# WebSocket live sync
+# ===========================================================================
+# httpx's ASGITransport doesn't support WebSockets, so these use Starlette's
+# TestClient (sync tests; pytest-asyncio's auto mode only affects async tests).
+
+from fastapi.testclient import TestClient  # noqa: E402
+
+from backend.main import app as _app  # noqa: E402
+
+
+def test_ws_initial_state_envelope():
+    """On connect the client receives the current state immediately."""
+    with TestClient(_app) as client:
+        resp = client.post("/leagues", json={
+            "name": "WS Initial", "num_teams": 12,
+            "user_team_number": 4, "scoring_format": "PPR",
+        })
+        assert resp.status_code == 201
+
+        with client.websocket_connect("/leagues/WS%20Initial/ws") as ws:
+            env = ws.receive_json()
+            assert env["type"] == "state"
+            assert env["league_id"] == "WS Initial"
+            st = env["state"]
+            assert st["overall_pick"] == 1
+            assert st["current_round"] == 1
+            assert st["team_on_clock"] == 1
+            assert len(st["matrix"]) == 12
+            assert st["picks_before_user"] == 3
+
+
+def test_ws_broadcasts_pick_to_all_clients():
+    """A pick made over REST is pushed to every connected device."""
+    with TestClient(_app) as client:
+        client.post("/leagues", json={
+            "name": "WS Broadcast", "num_teams": 8,
+            "user_team_number": 1, "scoring_format": "PPR",
+        })
+
+        with client.websocket_connect("/leagues/WS%20Broadcast/ws") as ws:
+            ws.receive_json()  # initial snapshot
+
+            pick = client.post("/leagues/WS%20Broadcast/pick",
+                               json={"player_name": "Patrick Mahomes"})
+            assert pick.json()["success"] is True
+
+            update = ws.receive_json()
+            assert update["type"] == "state"
+            assert update["state"]["overall_pick"] == 2
+            assert update["state"]["team_on_clock"] == 2
+            assert update["state"]["draft_log"][-1]["player_name"] == "Patrick Mahomes"
+
+
+def test_ws_broadcasts_undo():
+    """Undo pushes the rolled-back state to subscribers."""
+    with TestClient(_app) as client:
+        client.post("/leagues", json={
+            "name": "WS Undo", "num_teams": 8,
+            "user_team_number": 1, "scoring_format": "PPR",
+        })
+
+        with client.websocket_connect("/leagues/WS%20Undo/ws") as ws:
+            ws.receive_json()
+            client.post("/leagues/WS%20Undo/pick", json={"player_name": "Josh Allen"})
+            ws.receive_json()  # pick broadcast
+
+            undo = client.post("/leagues/WS%20Undo/undo")
+            assert undo.json()["success"] is True
+
+            update = ws.receive_json()
+            assert update["type"] == "state"
+            assert update["state"]["overall_pick"] == 1
+            assert update["state"]["draft_log"] == []
+
+
+def test_ws_ping_pong():
+    """The server answers ping frames so clients can keep alive."""
+    with TestClient(_app) as client:
+        client.post("/leagues", json={
+            "name": "WS Ping", "num_teams": 8,
+            "user_team_number": 1, "scoring_format": "PPR",
+        })
+        with client.websocket_connect("/leagues/WS%20Ping/ws") as ws:
+            ws.receive_json()  # initial snapshot
+            ws.send_text("ping")
+            assert ws.receive_text() == "pong"
+
+
+def test_ws_unknown_league_gets_error():
+    """Connecting to a nonexistent league returns an error envelope."""
+    with TestClient(_app) as client:
+        with client.websocket_connect("/leagues/NoSuchLeague/ws") as ws:
+            env = ws.receive_json()
+            assert env["type"] == "error"
+            assert "not found" in env["detail"]

@@ -155,8 +155,24 @@ Base URL: `http://127.0.0.1:8000`
 | `POST` | `/leagues/{id}/undo` | Roll back the last pick |
 | `GET`  | `/leagues/{id}/recommendations?ai=true` | VBD + NVIDIA AI recommendations |
 | `DELETE` | `/leagues/{id}` | Delete a league |
+| `WS`   | `/leagues/{id}/ws` | Live draft feed — pushes a fresh state envelope on every pick/undo from any device |
 
 League IDs are URL-encoded names (e.g. `Friday%20Night%20Legends`).
+
+### Live sync (WebSocket)
+
+Every league exposes a WebSocket feed at `/leagues/{id}/ws`. On connect it
+immediately sends the current draft state, then broadcasts a fresh state
+envelope after **every** successful pick or undo — so any number of devices
+in the room stay in sync with no pull-to-refresh.
+
+```json
+{"type": "state", "league_id": "Friday Night Legends", "state": { ...full draft state... }}
+```
+
+The iOS app connects automatically when you open a draft room (see the **LIVE**
+indicator) and disconnects when you leave. If the socket drops it reconnects
+with capped exponential backoff (2s → 8s, max 5 attempts) and resumes the feed.
 
 ### Example flow
 

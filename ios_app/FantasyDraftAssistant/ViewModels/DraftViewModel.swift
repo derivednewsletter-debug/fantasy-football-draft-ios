@@ -21,7 +21,11 @@ final class DraftViewModel {
     var notice: String?
     var noticeIsError = false
 
+    /// True while the live WebSocket feed for the open league is connected.
+    private(set) var isLiveConnected = false
+
     private let api = APIService()
+    private let ws = WebSocketManager()
 
     // MARK: - League list
 
@@ -53,6 +57,26 @@ final class DraftViewModel {
         selectedLeagueName = name
         recommendations = nil  // never show a previous league's AI picks
         await loadState()
+        connectLive(name)
+    }
+
+    /// Subscribe to the live draft feed so picks from other devices show up
+    /// in real time without pull-to-refresh.
+    private func connectLive(_ name: String) {
+        ws.onState = { [weak self] state in
+            self?.state = state
+            self?.quickPickText = ""
+        }
+        ws.onStatusChange = { [weak self] connected in
+            self?.isLiveConnected = connected
+        }
+        ws.connect(league: name)
+    }
+
+    /// Close the live feed (called when leaving the draft room).
+    func disconnectLive() {
+        ws.disconnect()
+        isLiveConnected = false
     }
 
     func loadState() async {

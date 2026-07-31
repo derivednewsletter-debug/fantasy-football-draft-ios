@@ -42,15 +42,28 @@ struct DraftRoomView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { await vm.loadState() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
+                HStack(spacing: 10) {
+                    if vm.isLiveConnected {
+                        HStack(spacing: 4) {
+                            Image(systemName: "circle.fill")
+                                .font(.system(size: 8))
+                            Text("LIVE")
+                                .font(.caption2.weight(.heavy))
+                        }
+                        .foregroundStyle(.green)
+                        .transition(.opacity)
+                    }
+                    Button {
+                        Task { await vm.loadState() }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .disabled(vm.isRefreshing)
                 }
-                .disabled(vm.isRefreshing)
             }
         }
         .task { await vm.openLeague(leagueName) }
+        .onDisappear { vm.disconnectLive() }
         .sheet(isPresented: $showAISheet) {
             AISuggestionSheet()
         }
